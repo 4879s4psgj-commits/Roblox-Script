@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 
--- 1. كود إنشاء رادار كاشف البيض ومحتواه
+-- 1. واجهة الرادار المحدثة (تبحث في كل مكان)
 if _G.ShowEggList and not CoreGui:FindFirstChild("EggRadarUI") then
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
     ScreenGui.Name = "EggRadarUI"
@@ -21,7 +21,7 @@ if _G.ShowEggList and not CoreGui:FindFirstChild("EggRadarUI") then
     
     local Title = Instance.new("TextLabel", Frame)
     Title.Size = UDim2.new(1, 0, 0, 35)
-    Title.Text = "🥚 رادار البيض المحيط بك 🥚"
+    Title.Text = "🥚 رادار البيض الذكي 🥚"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     
@@ -29,68 +29,85 @@ if _G.ShowEggList and not CoreGui:FindFirstChild("EggRadarUI") then
     Scroll.Size = UDim2.new(1, 0, 1, -35)
     Scroll.Position = UDim2.new(0, 0, 0, 35)
     Scroll.BackgroundTransparency = 1
-    Scroll.CanvasSize = UDim2.new(0, 0, 3, 0)
+    Scroll.CanvasSize = UDim2.new(0, 0, 4, 0)
     
     local UIList = Instance.new("UIListLayout", Scroll)
     UIList.SortOrder = Enum.SortOrder.LayoutOrder
     
     task.spawn(function()
-        while task.wait(1.5) do
+        while task.wait(2) do
             for _, child in pairs(Scroll:GetChildren()) do
                 if child:IsA("TextLabel") then child:Destroy() end
             end
             
-            -- فحص شامل للمجلدات المحدثة في الماب
-            local EggFolder = Workspace:FindFirstChild("Eggs") or Workspace:FindFirstChild("EggSpawns") or Workspace:FindFirstChild("ZoneEggs")
-            if EggFolder then
-                for _, egg in pairs(EggFolder:GetChildren()) do
+            -- فحص ذكي لكل مجسم يحتوي اسمه على كلمة بيضة
+            for _, v in pairs(Workspace:GetDescendants()) do
+                if v:IsA("BasePart") and (string.find(string.lower(v.Name), "egg") or v.Parent.Name == "Eggs") then
                     local txt = Instance.new("TextLabel", Scroll)
                     txt.Size = UDim2.new(1, 0, 0, 25)
-                    txt.TextColor3 = Color3.fromRGB(255, 200, 0)
+                    txt.TextColor3 = Color3.fromRGB(0, 255, 150)
                     txt.BackgroundTransparency = 1
-                    local content = egg:GetAttribute("Contains") or egg.Name
-                    txt.Text = "• " .. egg.Name .. " [" .. tostring(content) .. "]"
+                    txt.Text = "• Found: " .. v.Name
                 end
             end
         end
     end)
 end
 
--- 2. كود السرقة الآمنة والعودة الفورية للقاعدة
+-- 2. كود السرقة الشامل والطيران الفوري للمنزل
 task.spawn(function()
     while _G.AutoSteal do
-        task.wait(0.5) -- انتظار نصف ثانية لتفادي كشف الحماية (Anti-Cheat Bypass)
+        task.wait(0.5)
         
         local Char = LocalPlayer.Character
         local HRP = Char and Char:FindFirstChild("HumanoidRootPart")
         
-        -- العثور الذكي على قاعدة اللاعب (Plot) الخاص بك
+        -- العثور التلقائي على قاعدة اللاعب (بيتك)
         local MyBase = nil
-        local Bases = Workspace:FindFirstChild("Bases") or Workspace:FindFirstChild("PlayerBases") or Workspace:FindFirstChild("Plots")
-        if Bases then
-            MyBase = Bases:FindFirstChild(LocalPlayer.Name) or Bases:FindFirstChild(LocalPlayer.DisplayName)
+        for _, v in pairs(Workspace:GetDescendants()) do
+            if string.find(string.lower(v.Name), "base") or string.find(string.lower(v.Name), "plot") then
+                if v:GetAttribute("Owner") == LocalPlayer.Name or string.find(v.Name, LocalPlayer.Name) then
+                    MyBase = v
+                    break
+                end
+            end
+        end
+        -- خيار احتياطي إذا لم يجد الاسم المباشر
+        if not MyBase then
+            MyBase = Workspace:FindFirstChild("Bases") or Workspace:FindFirstChild("Plots")
+            if MyBase then MyBase = MyBase:FindFirstChild(LocalPlayer.Name) end
         end
         
-        local EggFolder = Workspace:FindFirstChild("Eggs") or Workspace:FindFirstChild("EggSpawns") or Workspace:FindFirstChild("ZoneEggs")
-        
-        if HRP and EggFolder and MyBase then
-            for _, egg in pairs(EggFolder:GetChildren()) do
-                local targetPart = egg:IsA("BasePart") and egg or egg:FindFirstChildWhichIsA("BasePart")
-                
-                if targetPart and targetPart.Parent then
-                    -- طيران آمن فوق البيضة مباشرة
-                    HRP.CFrame = targetPart.CFrame + Vector3.new(0, 1.5, 0)
-                    task.wait(0.3) -- وقت كافٍ لتسجيل اللعبة لعملية اللمس (Touch)
-                    
-                    -- طيران فوري للمنزل لتفريغها
-                    if MyBase:IsA("BasePart") then
-                        HRP.CFrame = MyBase.CFrame + Vector3.new(0, 3, 0)
-                    else
-                        HRP.CFrame = MyBase:GetModelCFrame() + Vector3.new(0, 3, 0)
+        if HRP and MyBase then
+            -- البحث عن البيض في الخريطة بالكامل بالاسم والملمس
+            for _, egg in pairs(Workspace:GetDescendants()) do
+                if egg:IsA("BasePart") and (string.find(string.lower(egg.Name), "egg") and egg.Name ~= "EggRadarUI") then
+                    -- تجنب كود الرادار نفسه أو أجزاء اللاعب
+                    if not egg:IsDescendantOf(Char) and not egg:IsDescendantOf(CoreGui) then
+                        
+                        -- طيران فوري فوق البيضة
+                        HRP.CFrame = egg.CFrame + Vector3.new(0, 1.5, 0)
+                        task.wait(0.1)
+                        
+                        -- تشغيل اللمس الإجباري
+                        if firetouchinterest then
+                            firetouchinterest(HRP, egg, 0)
+                            task.wait(0.05)
+                            firetouchinterest(HRP, egg, 1)
+                        end
+                        
+                        task.wait(0.2)
+                        
+                        -- طيران فوري إلى البيت (قاعدتك) لتفريغها
+                        if MyBase:IsA("BasePart") then
+                            HRP.CFrame = MyBase.CFrame + Vector3.new(0, 4, 0)
+                        else
+                            HRP.CFrame = MyBase:GetModelCFrame() + Vector3.new(0, 4, 0)
+                        end
+                        
+                        task.wait(0.5) -- انتظار تفريغ البيضة
+                        break
                     end
-                    
-                    task.wait(0.5) -- وقت إرجاع البيضة للمخزن قبل الذهاب للتالية
-                    break
                 end
             end
         end
