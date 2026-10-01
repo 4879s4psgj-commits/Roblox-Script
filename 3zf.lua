@@ -1,94 +1,98 @@
-false
+-- تفعيل الميزات تلقائياً
+_G.AutoSteal = true
+_G.ShowEggList = true
 
--- إنشاء الواجهة تلقائياً
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local ToggleButton = Instance.new("TextButton")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
 
-ScreenGui.Parent = game.CoreGui
-ScreenGui.Name = "CustomEggStealer"
-
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
-MainFrame.Size = UDim2.new(0, 220, 0, 130)
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-Title.Parent = MainFrame
-Title.Text = "سكربت 3zf للبيض النادر"
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Title.TextColor3 = Color3.fromRGB(255, 215, 0) -- لون ذهبي
-Title.TextSize = 16
-
-ToggleButton.Parent = MainFrame
-ToggleButton.Text = "بدء السرقة التلقائية: إيقاف"
-ToggleButton.Size = UDim2.new(0.9, 0, 0, 50)
-ToggleButton.Position = UDim2.new(0.05, 0, 0.45, 0)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-    for _, word in pairs(RareKeywords) do
-        if string.find(string.lower(name), word) then
-            return true
+-- 1. كود إنشاء رادار كاشف البيض ومحتواه
+if _G.ShowEggList and not CoreGui:FindFirstChild("EggRadarUI") then
+    local ScreenGui = Instance.new("ScreenGui", CoreGui)
+    ScreenGui.Name = "EggRadarUI"
+    
+    local Frame = Instance.new("Frame", ScreenGui)
+    Frame.Size = UDim2.new(0, 260, 0, 250)
+    Frame.Position = UDim2.new(0.02, 0, 0.25, 0)
+    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Frame.Active = true
+    Frame.Draggable = true
+    
+    local Title = Instance.new("TextLabel", Frame)
+    Title.Size = UDim2.new(1, 0, 0, 35)
+    Title.Text = "🥚 رادار البيض المحيط بك 🥚"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    
+    local Scroll = Instance.new("ScrollingFrame", Frame)
+    Scroll.Size = UDim2.new(1, 0, 1, -35)
+    Scroll.Position = UDim2.new(0, 0, 0, 35)
+    Scroll.BackgroundTransparency = 1
+    Scroll.CanvasSize = UDim2.new(0, 0, 3, 0)
+    
+    local UIList = Instance.new("UIListLayout", Scroll)
+    UIList.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    task.spawn(function()
+        while task.wait(1.5) do
+            for _, child in pairs(Scroll:GetChildren()) do
+                if child:IsA("TextLabel") then child:Destroy() end
+            end
+            
+            -- فحص شامل للمجلدات المحدثة في الماب
+            local EggFolder = Workspace:FindFirstChild("Eggs") or Workspace:FindFirstChild("EggSpawns") or Workspace:FindFirstChild("ZoneEggs")
+            if EggFolder then
+                for _, egg in pairs(EggFolder:GetChildren()) do
+                    local txt = Instance.new("TextLabel", Scroll)
+                    txt.Size = UDim2.new(1, 0, 0, 25)
+                    txt.TextColor3 = Color3.fromRGB(255, 200, 0)
+                    txt.BackgroundTransparency = 1
+                    local content = egg:GetAttribute("Contains") or egg.Name
+                    txt.Text = "• " .. egg.Name .. " [" .. tostring(content) .. "]"
+                end
+            end
         end
-    end
-    return false
+    end)
 end
 
--- الفحص الذكي والشامل داخل اللعبة بالكامل
-local function findAndRobEgg()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    
-    if not rootPart then return end
-
-    -- الفحص المطور: يبحث في كل مجلدات اللعبة وليسWorkspace فقط
-    for _, object in pairs(game.Workspace:GetDescendants()) do
-        if object:IsA("Model") or object:IsA("BasePart") then
-            -- التحقق إذا كان الاسم يحتوي على كلمة بيضة وأنه من الأنواع القوية
-            if string.find(string.lower(object.Name), "egg") and checkRare(object.Name) then
+-- 2. كود السرقة الآمنة والعودة الفورية للقاعدة
+task.spawn(function()
+    while _G.AutoSteal do
+        task.wait(0.5) -- انتظار نصف ثانية لتفادي كشف الحماية (Anti-Cheat Bypass)
+        
+        local Char = LocalPlayer.Character
+        local HRP = Char and Char:FindFirstChild("HumanoidRootPart")
+        
+        -- العثور الذكي على قاعدة اللاعب (Plot) الخاص بك
+        local MyBase = nil
+        local Bases = Workspace:FindFirstChild("Bases") or Workspace:FindFirstChild("PlayerBases") or Workspace:FindFirstChild("Plots")
+        if Bases then
+            MyBase = Bases:FindFirstChild(LocalPlayer.Name) or Bases:FindFirstChild(LocalPlayer.DisplayName)
+        end
+        
+        local EggFolder = Workspace:FindFirstChild("Eggs") or Workspace:FindFirstChild("EggSpawns") or Workspace:FindFirstChild("ZoneEggs")
+        
+        if HRP and EggFolder and MyBase then
+            for _, egg in pairs(EggFolder:GetChildren()) do
+                local targetPart = egg:IsA("BasePart") and egg or egg:FindFirstChildWhichIsA("BasePart")
                 
-                local targetPart = object:IsA("BasePart") and object or object:FindFirstChildWhichIsA("BasePart")
-                
-                if targetPart then
-                    -- الانتقال الآمن فوق البيضة
-                    rootPart.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
-                    task.wait(0.15)
+                if targetPart and targetPart.Parent then
+                    -- طيران آمن فوق البيضة مباشرة
+                    HRP.CFrame = targetPart.CFrame + Vector3.new(0, 1.5, 0)
+                    task.wait(0.3) -- وقت كافٍ لتسجيل اللعبة لعملية اللمس (Touch)
                     
-                    -- البحث عن زر السرقة وتفعيله فوراً
-                    local prompt = object:FindFirstChildOfClass("ProximityPrompt") or targetPart:FindFirstChildOfClass("ProximityPrompt")
-                    if prompt then
-                        fireproximityprompt(prompt, 1)
+                    -- طيران فوري للمنزل لتفريغها
+                    if MyBase:IsA("BasePart") then
+                        HRP.CFrame = MyBase.CFrame + Vector3.new(0, 3, 0)
+                    else
+                        HRP.CFrame = MyBase:GetModelCFrame() + Vector3.new(0, 3, 0)
                     end
+                    
+                    task.wait(0.5) -- وقت إرجاع البيضة للمخزن قبل الذهاب للتالية
                     break
                 end
             end
         end
-    end
-end
-
--- تشغيل الكود في الخلفية بشكل مستمر عند التفعيل
-task.spawn(function()
-    while true do
-        task.wait(0.4)
-        if _G.SecretFarm then
-            pcall(findAndRobEgg) -- استخدام pcall لمنع توقف السكربت أو حدوث كراش
-        end
-    end
-end)
-
--- برمجة تفعيل وإيقاف الزر
-ToggleButton.MouseButton1Click:Connect(function()
-    _G.SecretFarm = not _G.SecretFarm
-    if _G.SecretFarm then
-        ToggleButton.Text = "بدء السرقة التلقائية: يعمل"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-    else
-        ToggleButton.Text = "بدء السرقة التلقائية: إيقاف"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     end
 end)
