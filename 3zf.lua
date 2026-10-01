@@ -1,5 +1,4 @@
--- سكربت السرقة التلقائية المطور - برمجة 3zf
-_G.SecretFarm = false
+false
 
 -- إنشاء الواجهة تلقائياً
 local ScreenGui = Instance.new("ScreenGui")
@@ -30,12 +29,7 @@ ToggleButton.Size = UDim2.new(0.9, 0, 0, 50)
 ToggleButton.Position = UDim2.new(0.05, 0, 0.45, 0)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.TextSize = 14
 
--- قائمة الكلمات المفتاحية للبيوض القوية والنادرة
-local RareKeywords = {"secret", "divine", "void", "mythic", "event", "strong", "rare"}
-
-local function checkRare(name)
     for _, word in pairs(RareKeywords) do
         if string.find(string.lower(name), word) then
             return true
